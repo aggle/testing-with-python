@@ -145,6 +145,19 @@ def download_asos_data(url):
     return df
 
 
+def wind_components(speed, direction):
+    """
+    Calculate the u, v wind vector components from speed and direction
+    Convention: u = -speed * sin(theta)
+                v = -speed * cos(theta)
+    Args: speed, direction
+    Returns: u, v
+    """
+    u = -speed * np.sin(direction)
+    v = -speed * np.cos(direction)
+    return (u, v)
+
+
 def plot_meteogram(df):
     """
     Plot a meteogram with matplotlib.
