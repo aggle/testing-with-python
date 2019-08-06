@@ -114,6 +114,9 @@ def build_asos_request_url(station, start_date=None, end_date=None):
     if start_date is None:
         start_date = end_date - datetime.timedelta(hours=24)
 
+    if start_date > end_date:
+        raise ValueError('Start date cannot be after end date')
+
     url_str = (f'https://mesonet.agron.iastate.edu/request/asos/'
                f'1min_dl.php?station%5B%5D={station}&tz=UTC&year1='
                f'{start_date:%Y}&month1={start_date:%m}&day1={start_date:%d}'
@@ -155,7 +158,7 @@ def download_asos_data(url):
     return df
 
 
-def plot_meteogram(df):
+def plot_meteogram(df, direction_markers=True):
     """
     Plot a meteogram with matplotlib.
 
@@ -206,6 +209,11 @@ def plot_meteogram(df):
     ax1.set_ylabel(u'\N{DEGREE SIGN}F', fontsize=label_fontsize)
     ax2.set_ylabel('Knots', fontsize=label_fontsize)
     ax2b.set_ylabel('Degrees', fontsize=label_fontsize)
+
+    # Add direction markers
+    if direction_markers:
+        for value_degrees in [0, 90, 180, 270]:
+            ax2b.axhline(y=value_degrees, color='k', linestyle='--', linewidth=0.25)
 
     return fig, ax1, ax2, ax2b
 

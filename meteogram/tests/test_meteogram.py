@@ -4,6 +4,20 @@ from meteogram import meteogram
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
 from unittest.mock import patch
 from meteogram import testing as mtesting
+import pytest
+from pathlib import Path
+
+
+# Fixtures
+
+@pytest.fixture
+def load_example_asos():
+    """
+    Fixture to load example data from a csv file for testing
+    """
+    example_data_path = Path(__file__).resolve().parent / '..' / '..' / 'staticdata'
+    data_path = example_data_path / 'AMW_example_data.csv'
+    return meteogram.download_asos_data(data_path)
 
 #
 # Example starter test
@@ -389,6 +403,49 @@ def test_download_asos_data():
 # Exercise 5
 #
 
+import pytest
+
+@pytest.mark.mpl_image_compare(remove_text=True)
+def test_plotting_meteogram_defaults(load_example_asos):
+    """Test default meteogram plotting."""
+    # Setup
+    #url = meteogram.build_asos_request_url('AMW',
+    #                                       start_date=meteogram.datetime.datetime(2018, 3, 26),
+    #                                       end_date=meteogram.datetime.datetime(2018, 3, 27))
+    df = load_example_asos  # meteogram.download_asos_data(url)
+
+
+    # Exercise
+    fig, _, _, _ = meteogram.plot_meteogram(df)
+
+    # Verify - Done by decorator when run with -mpl flag
+
+    # Cleanup - none necessary
+
+    return fig
+
+
+@pytest.mark.mpl_image_compare(remove_text=True)
+def test_plotting_meteogram_direction_fiducials(load_example_asos):
+    """Test meteogram plotting with fiducial lines."""
+    # Setup
+    #url = meteogram.build_asos_request_url('AMW',
+    #                                       start_date=meteogram.datetime.datetime(2018, 3, 26),
+    #                                       end_date=meteogram.datetime.datetime(2018, 3, 27))
+    df = load_example_asos  # meteogram.download_asos_data(url)
+
+
+    # Exercise
+    fig, _, _, _ = meteogram.plot_meteogram(df, direction_markers=True)
+
+    # Verify - Done by decorator when run with -mpl flag
+
+    # Cleanup - none necessary
+
+    return fig
+
+
+
 #
 # Exercise 5 - Stop Here
 #
@@ -397,6 +454,71 @@ def test_download_asos_data():
 # Exercise 6
 #
 
+# Parameterization
+
+@pytest.mark.parametrize('start, end, station, expected', [
+    # Single Digit Datetimes
+    (meteogram.datetime.datetime(2018, 1, 5, 1),
+     meteogram.datetime.datetime(2018, 1, 9, 1),
+     'FSD',
+     'https://mesonet.agron.iastate.edu/request/asos/1min_dl.php?'
+     'station%5B%5D=FSD&tz=UTC&year1=2018&month1=01&day1=05&hour1=01'
+     '&minute1=00&year2=2018&month2=01&day2=09&hour2=01&minute2=00&'
+     'vars%5B%5D=tmpf&vars%5B%5D=dwpf&vars%5B%5D=sknt&vars%5B%5D=drct&'
+     'sample=1min&what=view&delim=comma&gis=yes'),
+    # Double digit datetimes
+    (meteogram.datetime.datetime(2018, 11, 12, 13, 14),
+     meteogram.datetime.datetime(2018, 11, 12, 15, 16),
+     'FSD',
+     'https://mesonet.agron.iastate.edu/request/asos/1min_dl.php?'
+     'station%5B%5D=FSD&tz=UTC&year1=2018&month1=11&day1=12&'
+     'hour1=13&minute1=14&year2=2018&month2=11&day2=12&hour2=15&'
+     'minute2=16&vars%5B%5D=tmpf&vars%5B%5D=dwpf&vars%5B%5D=sknt&'
+     'vars%5B%5D=drct&sample=1min&what=view&delim=comma&gis=yes'),
+    # All defaults
+    (None,
+     None,
+     'FSD',
+     'https://mesonet.agron.iastate.edu/request/asos/1min_dl.php?'
+     'station%5B%5D=FSD&tz=UTC&year1=2018&month1=03&day1=25&'
+     'hour1=12&minute1=00&year2=2018&month2=03&day2=26&hour2=12'
+     '&minute2=00&vars%5B%5D=tmpf&vars%5B%5D=dwpf&vars%5B%5D=sknt&'
+     'vars%5B%5D=drct&sample=1min&what=view&delim=comma&gis=yes'),
+    # Start value default
+    (meteogram.datetime.datetime(2018, 2, 16, 4),
+     None,
+     'FSD',
+    'https://mesonet.agron.iastate.edu/request/asos/1min_dl.php?'
+     'station%5B%5D=FSD&tz=UTC&year1=2018&month1=02&day1=16&'
+     'hour1=04&minute1=00&year2=2018&month2=03&day2=26&hour2=12&'
+     'minute2=00&vars%5B%5D=tmpf&vars%5B%5D=dwpf&vars%5B%5D=sknt&'
+     'vars%5B%5D=drct&sample=1min&what=view&delim=comma&gis=yes'),
+    # End value default
+    (None,
+     meteogram.datetime.datetime(2018, 2, 16, 4), 'FSD',
+     'https://mesonet.agron.iastate.edu/request/asos/1min_dl.php?'
+     'station%5B%5D=FSD&tz=UTC&year1=2018&month1=02&day1=15&'
+     'hour1=04&minute1=00&year2=2018&month2=02&day2=16&hour2=04&'
+     'minute2=00&vars%5B%5D=tmpf&vars%5B%5D=dwpf&vars%5B%5D=sknt&'
+     'vars%5B%5D=drct&sample=1min&what=view&delim=comma&gis=yes')
+])
+@patch('meteogram.meteogram.current_utc_time', new=mocked_current_utc_time)
+def test_build_asos_request_url(start, end, station, expected):
+    """
+    Test URL building for requests
+    """
+    # Setup - done by parameterized fixture
+
+    # Exercise
+    url = meteogram.build_asos_request_url(station, start, end)
+
+    # Verify
+    assert(url == expected)
+
+    # Cleanup - none
+
+
+
 #
 # Exercise 6 - Stop Here
 #
@@ -404,6 +526,17 @@ def test_download_asos_data():
 #
 # Exercise 7
 #
+
+def test_download_asos_data_start_after_end():
+    # Setup
+    start = meteogram.datetime.datetime(2018, 8, 1, 12)
+    end = meteogram.datetime.datetime(2018, 7, 1, 12)
+
+    # Exercise/Verify
+    with pytest.raises(ValueError):
+        meteogram.build_asos_request_url('AMW', start, end)
+    # Cleanup - none necessary
+
 
 #
 # Exercise 7 - Stop Here
