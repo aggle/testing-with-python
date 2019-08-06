@@ -86,7 +86,7 @@ def exner_function(pressure, reference_pressure=1000):
     return (pressure / reference_pressure)**0.28562982892500527
 
 
-def build_asos_request_url(station, start_date, end_date):
+def build_asos_request_url(station, start_date=None, end_date=None):
     """
     Create a URL to request ASOS data from the Iowa State archive.
 
@@ -96,13 +96,23 @@ def build_asos_request_url(station, start_date, end_date):
         Station identifier
     start_date: datetime.datetime
         Starting time of data to be obtained
+        if None, use 24 hours before end_date
     end_data: datetime.datetime
         Ending time of data to be obtained
+        if None,  use current time
 
     Returns
     -------
     str: URL of the data
     """
+
+    # if no end date specified, use current time
+    if end_date is None:
+        end_date = current_utc_time()
+
+    # if no start date specified, use 24 hrs before end_date
+    if start_date is None:
+        start_date = end_date - datetime.timedelta(hours=24)
 
     url_str = (f'https://mesonet.agron.iastate.edu/request/asos/'
                f'1min_dl.php?station%5B%5D={station}&tz=UTC&year1='
@@ -143,19 +153,6 @@ def download_asos_data(url):
     # Parse the valid times into real datetimes
     df['UTC'] = pd.to_datetime(df['UTC'])
     return df
-
-
-def wind_components(speed, direction):
-    """
-    Calculate the u, v wind vector components from speed and direction
-    Convention: u = -speed * sin(theta)
-                v = -speed * cos(theta)
-    Args: speed, direction
-    Returns: u, v
-    """
-    u = -speed * np.sin(direction)
-    v = -speed * np.cos(direction)
-    return (u, v)
 
 
 def plot_meteogram(df):
@@ -211,3 +208,17 @@ def plot_meteogram(df):
     ax2b.set_ylabel('Degrees', fontsize=label_fontsize)
 
     return fig, ax1, ax2, ax2b
+
+
+def wind_components(speed, direction):
+    """
+    Calculate the u, v wind vector components from speed and direction
+    Convention: u = -speed * sin(theta)
+                v = -speed * cos(theta)
+    Args: speed, direction
+    Returns: u, v
+    """
+    direction = np.radians(direction)
+    u = -speed * np.sin(direction)
+    v = -speed * np.cos(direction)
+    return (u, v)
